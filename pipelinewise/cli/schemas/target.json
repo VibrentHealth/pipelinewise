@@ -50,6 +50,9 @@
         },
         "private_key": {
           "type": "string"
+        },
+        "private_key_passphrase": {
+          "type": "string"
         }
       },
       "required": [

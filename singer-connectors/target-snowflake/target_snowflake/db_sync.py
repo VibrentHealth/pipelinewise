@@ -297,9 +297,10 @@ class DbSync:
         if not private_key:
             return None
 
+        passphrase = self.connection_config.get('private_key_passphrase')
         p_key = serialization.load_pem_private_key(
             private_key.replace('\\n', '\n').encode(),
-            password=None,
+            password=passphrase.encode() if passphrase else None,
             backend=default_backend()
         )
 
