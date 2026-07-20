@@ -87,7 +87,7 @@ class FastSyncTargetSnowflake:
             return None
 
         p_key = serialization.load_pem_private_key(
-            private_key.encode(),
+            private_key.replace('\\n', '\n').encode(),
             password=None,
             backend=default_backend()
         )
