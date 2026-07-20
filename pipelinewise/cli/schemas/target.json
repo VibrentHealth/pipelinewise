@@ -48,10 +48,7 @@
         "client_side_encryption_master_key": {
           "type": "string"
         },
-        "private_key_path": {
-          "type": "string"
-        },
-        "private_key_passphrase": {
+        "private_key": {
           "type": "string"
         }
       },

@@ -81,22 +81,16 @@ class FastSyncTargetSnowflake:
         )
 
     def get_private_key(self):
-        """Get private key from file path if configured"""
-        private_key_path = self.connection_config.get('private_key_path')
-        if not private_key_path:
+        """Get private key from PEM content if configured"""
+        private_key = self.connection_config.get('private_key')
+        if not private_key:
             return None
 
-        try:
-            encoded_passphrase = self.connection_config['private_key_passphrase'].encode()
-        except KeyError:
-            encoded_passphrase = None
-
-        with open(private_key_path, 'rb') as key_file:
-            p_key = serialization.load_pem_private_key(
-                key_file.read(),
-                password=encoded_passphrase,
-                backend=default_backend()
-            )
+        p_key = serialization.load_pem_private_key(
+            private_key.encode(),
+            password=None,
+            backend=default_backend()
+        )
 
         return p_key.private_bytes(
             encoding=serialization.Encoding.DER,

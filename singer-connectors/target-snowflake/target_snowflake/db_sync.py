@@ -57,10 +57,10 @@ def validate_config(config):
         if not config.get(k, None):
             errors.append(f"Required key is missing from config: [{k}]")
 
-    # Require either password or private_key_path for authentication
-    if not config.get('password', None) and not config.get('private_key_path', None):
+    # Require either password or private_key for authentication
+    if not config.get('password', None) and not config.get('private_key', None):
         errors.append("Required authentication key missing. "
-                      "Provide either 'password' or 'private_key_path' in config.")
+                      "Provide either 'password' or 'private_key' in config.")
 
     # Check target schema config
     config_default_target_schema = config.get('default_target_schema', None)
@@ -292,22 +292,16 @@ class DbSync:
             self.upload_client = SnowflakeUploadClient(connection_config, self)
 
     def get_private_key(self):
-        """Get private key from file path if configured"""
-        private_key_path = self.connection_config.get('private_key_path')
-        if not private_key_path:
+        """Get private key from PEM content if configured"""
+        private_key = self.connection_config.get('private_key')
+        if not private_key:
             return None
 
-        try:
-            encoded_passphrase = self.connection_config['private_key_passphrase'].encode()
-        except KeyError:
-            encoded_passphrase = None
-
-        with open(private_key_path, 'rb') as key_file:
-            p_key = serialization.load_pem_private_key(
-                key_file.read(),
-                password=encoded_passphrase,
-                backend=default_backend()
-            )
+        p_key = serialization.load_pem_private_key(
+            private_key.encode(),
+            password=None,
+            backend=default_backend()
+        )
 
         return p_key.private_bytes(
             encoding=serialization.Encoding.DER,
