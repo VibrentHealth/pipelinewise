@@ -5,6 +5,8 @@ import boto3
 import snowflake.connector
 
 from typing import List, Dict, Optional
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 from snowflake.connector.encryption_util import SnowflakeEncryptionUtil
 from snowflake.connector.storage_client import SnowflakeFileEncryptionMaterial
 
@@ -78,20 +80,44 @@ class FastSyncTargetSnowflake:
             }
         )
 
+    def get_private_key(self):
+        """Get private key from PEM content if configured"""
+        private_key = self.connection_config.get('private_key')
+        if not private_key:
+            return None
+
+        p_key = serialization.load_pem_private_key(
+            private_key.replace('\\n', '\n').encode(),
+            password=None,
+            backend=default_backend()
+        )
+
+        return p_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption()
+        )
+
     def open_connection(self, query_tag_props=None):
-        return snowflake.connector.connect(
+        conn_kwargs = dict(
             user=self.connection_config['user'],
-            password=self.connection_config['password'],
             account=self.connection_config['account'],
             database=self.connection_config['dbname'],
             warehouse=self.connection_config['warehouse'],
             autocommit=True,
             session_parameters={
-                # Quoted identifiers should be case sensitive
                 'QUOTED_IDENTIFIERS_IGNORE_CASE': 'FALSE',
                 'QUERY_TAG': self.create_query_tag(query_tag_props),
             },
         )
+
+        private_key = self.get_private_key()
+        if private_key:
+            conn_kwargs['private_key'] = private_key
+        else:
+            conn_kwargs['password'] = self.connection_config['password']
+
+        return snowflake.connector.connect(**conn_kwargs)
 
     def query(self, query, params=None, query_tag_props=None):
         LOGGER.debug('Running query: %s', query)
